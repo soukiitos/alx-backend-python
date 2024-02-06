@@ -75,7 +75,6 @@ class TestGithubOrgClient(unittest.TestCase):
 class TestIntegrationGithubOrgClient(unittest.TestCase):
     '''Test Integration'''
 
-    
     @classmethod
     def setUpClass(cls):
         '''Define setUpclass'''
@@ -92,7 +91,6 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
         options = {org["repos_url"]: repos_mock}
         cls.get.side_effect = lambda y: options.get(y, org_mock)
 
-    
     @classmethod
     def tearDownClass(cls):
         '''Define tearDownClass'''
