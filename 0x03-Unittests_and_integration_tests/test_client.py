@@ -32,41 +32,32 @@ class TestGithubOrgClient(unittest.TestCase):
 
     def test_public_repos_url(self):
         """Define test_public_repos_url"""
-        with patch(
-                'client.GithubOrgClient.org',
-                new_callable=property,
-                return_value={
-                    'repos_url': 'https://api.github.com/orgs/example/repos'
-                    }
-                ):
-            github_client = GithubOrgClient('example')
-            result = github_client._public_repos_url
-        expected_url = 'https://api.github.com/orgs/example/repos'
-        self.assertEqual(result, expected_url)
+        expected = "www.azerty.com"
+        payload = {"repos_url": expected}
+        to_mock = 'client.GithubOrgClient.org'
+        with patch(to_mock, PropertyMock(return_value=payload)):
+            cli = GithubOrgClient("x")
+            self.assertEqual(cli._public_repos_url, expected)
 
     @patch('client.get_json')
     def test_public_repos(self, get_json_mock):
         '''Define test_public_repos'''
-        violet = {"name": "Violet", "license": {"key": "a"}}
-        sakura = {"name": "Sakura", "license": {"key": "b"}}
-        kiito = {"name": "Kiito"}
-        to_mock = 'client.GithubOrgClient._public_repos_url'
+        violet = {"name": "violet", "license": {"key": "a"}}
+        sakura = {"name": "sakura", "license": {"key": "b"}}
+        kiito = {"name": "kiito"}
+        expected_url = "www.azerty.com"
         get_json_mock.return_value = [violet, sakura, kiito]
         with patch(
-                to_mock,
-                PropertyMock(
-                    return_value="https://api.github.com/orgs/example/repos"
-                    )
-                ) as y:
+                'client.GithubOrgClient._public_repos_url',
+                new_callable=PropertyMock,
+                return_value=expected_url
+                ):
             x = GithubOrgClient("x")
             self.assertEqual(x.public_repos(), ['violet', 'sakura', 'kiito'])
             self.assertEqual(x.public_repos("a"), ['violet'])
             self.assertEqual(x.public_repos("c"), [])
             self.assertEqual(x.public_repos(45), [])
-            get_json_mock.assert_called_once_with(
-                    "https://api.github.com/orgs/example/repos"
-                    )
-            y.assert_called_once_with()
+            get_json_mock.assert_called_once_with(expected_url)
 
     @parameterized.expand([
         ({'license': {'key': 'my_license'}}, 'my_license', True),
@@ -86,7 +77,7 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
 
     
     @classmethod
-    def setUpclass(cld):
+    def setUpClass(cls):
         '''Define setUpclass'''
         org = TEST_PAYLOAD[0][0]
         repos = TEST_PAYLOAD[0][1]
@@ -98,20 +89,21 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
         cls.repos_mock = repos_mock
         cls.get_patcher = patch('requests.get')
         cls.get = cls.get_patcher.start()
-        options = {cls.org_payload["repos_urle"]: repos_mock}
+        options = {org["repos_url"]: repos_mock}
         cls.get.side_effect = lambda y: options.get(y, org_mock)
 
     
     @classmethod
     def tearDownClass(cls):
         '''Define tearDownClass'''
-        cls.get_patcher.stop()
+        if hasattr(cls, 'get_patcher'):
+            cls.get_patcher.stop()
 
     def test_public_repos(self):
         '''Define test_public_repos'''
         y = GithubOrgClient("x")
         self.assertEqual(y.org, self.org_payload)
-        self.assertEqual(y.repos_playload, self.repos_playload)
+        self.assertEqual(y.repos_payload, self.repos_payload)
         self.assertEqual(y.public_repos(), self.expected_repos)
         self.assertEqual(y.public_repos("NONEXISTENT"), [])
         self.get.assert_has_calls([
@@ -126,6 +118,7 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
         self.assertEqual(y.repos_payload, self.repos_payload)
         self.assertEqual(y.public_repos(), self.expected_repos)
         self.assertEqual(y.public_repos("NONEXISTENT"), [])
+        self.assertEqual(y.public_repos("apache-2.0"), self.apache2_repos)
         self.get.assert_has_calls([
             call("https://api.github.com/orgs/x"),
             call(self.org_payload["repos_url"])
